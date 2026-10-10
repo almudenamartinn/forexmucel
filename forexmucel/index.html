@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Crea fórmulas de Excel a partir de instrucciones escritas.">
+  <title>Fórmulas claras para Excel</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: #17211e;
+      background: #f3f6f3;
+      font-synthesis: none;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, textarea { font: inherit; }
+    .shell { max-width: 760px; margin: 0 auto; padding: 24px 18px 40px; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .eyebrow { margin: 0 0 7px; color: #17804f; font-size: 11px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(23px, 5vw, 30px); letter-spacing: -.04em; }
+    .subtitle { margin: 7px 0 0; color: #64736c; font-size: 14px; line-height: 1.5; }
+    .badge { flex: 0 0 auto; border: 1px solid #d5e6dc; border-radius: 999px; padding: 7px 10px; color: #17653f; background: #eaf5ed; font-size: 11px; font-weight: 700; }
+    .card { border: 1px solid #e0e8e2; border-radius: 16px; padding: 20px; background: #fff; box-shadow: 0 12px 30px #243a2a0c; }
+    label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+    .hint { margin: -2px 0 11px; color: #68776e; font-size: 12px; line-height: 1.5; }
+    textarea { width: 100%; min-height: 105px; resize: vertical; border: 1px solid #d7e1da; border-radius: 10px; padding: 12px; outline: none; color: #173b2a; background: #fbfdfb; line-height: 1.55; }
+    textarea:focus { border-color: #268c5c; box-shadow: 0 0 0 3px #268c5c1c; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 12px; }
+    button.action { min-height: 39px; border: 1px solid #d5dfd8; border-radius: 9px; padding: 0 13px; color: #33473b; background: #fff; cursor: pointer; font-size: 12px; font-weight: 700; }
+    button.action:hover:not(:disabled) { border-color: #a8c8b3; background: #f5faf6; }
+    button.primary { border-color: #147544; color: #fff; background: #147544; }
+    button.primary:hover:not(:disabled) { border-color: #0d6035; background: #0d6035; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    .result { margin-top: 22px; }
+    .result-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 9px; }
+    h2 { margin: 0; font-size: 15px; }
+    .result-heading .action { min-height: 32px; padding: 0 10px; }
+    .result-modes { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 9px; }
+    .result-modes .action[aria-pressed="true"] { border-color: #91bca0; color: #145d37; background: #edf7ef; }
+    .formula-box { overflow: auto; max-height: 280px; border: 1px solid #dce8df; border-radius: 10px; padding: 14px; color: #164c32; background: #f6faf7; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .formula-box[data-mode="words"] { max-height: none; color: #253f30; background: #f8fbf8; font: 16px/1.8 "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; }
+    .formula-box[data-mode="notation"] { max-height: none; color: #163c29; background: #fffdf6; font: 19px/1.8 Georgia, "Times New Roman", serif; }
+    .report { min-height: 60px; margin: 12px 0 0; border-left: 3px solid #99c8a8; padding: 11px 13px; color: #485b50; background: #f7faf8; font-size: 13px; line-height: 1.6; }
+    .header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+    .language-switch { display: flex; gap: 3px; border: 1px solid #d5dfd8; border-radius: 999px; padding: 3px; background: #fff; }
+    .language-flag { display: grid; width: 30px; height: 28px; place-items: center; border: 0; border-radius: 999px; background: transparent; cursor: pointer; font-size: 17px; line-height: 1; }
+    .language-flag[aria-pressed="true"] { background: #eaf5ed; box-shadow: inset 0 0 0 1px #b7d3bf; }
+    .language-flag:focus-visible { outline: 2px solid #268c5c; outline-offset: 2px; }
+    .insert-row { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+    #connectionStatus, #status { color: #69776e; font-size: 11px; line-height: 1.45; }
+    #status { min-height: 17px; margin-top: 12px; }
+    #status[data-kind="error"] { color: #b42318; }
+    #status[data-kind="success"] { color: #147544; }
+    .footer { margin: 14px 2px 0; color: #758179; font-size: 11px; line-height: 1.5; }
+    @media (max-width: 520px) {
+      .shell { padding: 19px 12px 30px; }
+      .card { padding: 15px; }
+      header { gap: 8px; }
+      .badge { padding: 6px 8px; }
+      .insert-row { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <p class="eyebrow" id="eyebrow">Tu asistente de hojas de cálculo</p>
+        <h1 id="pageTitle">Fórmulas claras para Excel</h1>
+        <p class="subtitle" id="subtitle">Describe con palabras lo que necesitas, entiende la fórmula y después insértala en la celda seleccionada.</p>
+      </div>
+      <div class="header-actions">
+        <div class="language-switch" id="languageSwitch" role="group" aria-label="Idioma de la aplicación">
+          <button class="language-flag" id="spanishButton" type="button" aria-label="Español" aria-pressed="true" title="Español">🇪🇸</button>
+          <button class="language-flag" id="englishButton" type="button" aria-label="English" aria-pressed="false" title="English">🇬🇧</button>
+        </div>
+        <span class="badge" id="badge">Complemento de Excel</span>
+      </div>
+    </header>
+
+    <section class="card" id="toolsCard" aria-label="Herramientas de fórmulas">
+      <section class="panel" id="generatePanel">
+        <label id="ideaLabel" for="ideaInput">¿Qué quieres calcular?</label>
+        <p class="hint" id="ideaHint">Por ejemplo: «Si las ventas de B2 superan 1.000, muestra “Objetivo”; si no, muestra “Pendiente”».</p>
+        <textarea id="ideaInput" placeholder="Describe el cálculo en español. Puedes mencionar nombres de columnas o celdas."></textarea>
+        <div class="actions">
+          <button class="action primary" id="generateButton" type="button">Crear fórmula</button>
+        </div>
+      </section>
+
+      <section class="result" aria-live="polite">
+        <div class="result-heading">
+          <h2 id="resultTitle">Fórmula lista</h2>
+          <button class="action" id="copyButton" type="button" disabled>Copiar fórmula</button>
+        </div>
+        <div class="result-modes" id="resultModes" role="group" aria-label="Formato de visualización">
+          <button class="action" id="excelViewButton" type="button" aria-pressed="true">Fórmula Excel</button>
+          <button class="action" id="wordsViewButton" type="button" aria-pressed="false">En palabras</button>
+          <button class="action" id="notationViewButton" type="button" aria-pressed="false">Notación</button>
+        </div>
+        <pre class="formula-box" id="formattedOutput" data-mode="excel">Tu fórmula ordenada aparecerá aquí.</pre>
+        <p class="report" id="reportOutput">La explicación clara, lista para revisar o incluir en un informe, aparecerá aquí.</p>
+        <div class="insert-row">
+          <button class="action primary" id="insertButton" type="button" disabled>Insertar en Excel</button>
+          <span id="connectionStatus">Comprobando conexión con Excel…</span>
+        </div>
+        <p id="status" role="status"></p>
+      </section>
+    </section>
+    <p class="footer" id="footer">La generación con IA necesita que el backend local esté configurado con una clave de API. No se envían los datos de la hoja; solo la instrucción o fórmula que escribas.</p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let formulaToInsert = "";
+    let formulaExplanation = "";
+    let formulaNotation = "";
+    let displayMode = "excel";
+    let selectedLanguage = "es";
+    let formulaLocale = true;
+    let excelReady = false;
+
+    const translations = {
+      es: {
+        eyebrow: "Tu asistente de hojas de cálculo",
+        pageTitle: "Fórmulas claras para Excel",
+        subtitle: "Describe con palabras lo que necesitas, entiende la fórmula y después insértala en la celda seleccionada.",
+        badge: "Complemento de Excel",
+        toolsCard: "Herramientas de fórmulas",
+        languageGroup: "Idioma de la aplicación",
+        ideaLabel: "¿Qué quieres calcular?",
+        ideaHint: "Por ejemplo: «Si las ventas de B2 superan 1.000, muestra “Objetivo”; si no, muestra “Pendiente”».",
+        ideaInput: "Describe el cálculo en español. Puedes mencionar nombres de columnas o celdas.",
+        generateButton: "Crear fórmula",
+        resultTitle: "Fórmula lista",
+        copyButton: "Copiar fórmula",
+        excelViewButton: "Fórmula Excel",
+        wordsViewButton: "En palabras",
+        notationViewButton: "Notación",
+        viewModeLabel: "Formato de visualización",
+        emptyFormula: "Tu fórmula ordenada aparecerá aquí.",
+        emptyReport: "La explicación clara, lista para revisar o incluir en un informe, aparecerá aquí.",
+        insertButton: "Insertar en Excel",
+        checkingExcel: "Comprobando conexión con Excel…",
+        excelConnected: "Conectado a Excel. Se usará la celda seleccionada.",
+        excelNotConnected: "Abre este complemento desde Excel para insertar fórmulas.",
+        webPreview: "Vista previa web: abre el complemento desde Excel para insertar fórmulas.",
+        footer: "Las fórmulas comunes funcionan en modo local sin clave. Si configuras OPENAI_API_KEY, la IA podrá resolver peticiones más abiertas. Solo se envía la instrucción, nunca los datos de la hoja.",
+        askForCalculation: "Escribe o dicta qué cálculo necesitas.",
+        creatingFormula: "Creando y revisando la fórmula…",
+        clarificationNeeded: "No se creó una fórmula para insertar. Revisa la explicación y los datos que faltan.",
+        conditionalFormattingNotice: "El color de una celda se aplica con formato condicional, no insertando una fórmula en su valor.",
+        invalidGeneratedFormula: "La respuesta no contiene una fórmula de Excel válida.",
+        reviewGeneratedFormula: "Fórmula creada. Revísala antes de insertarla en tu hoja.",
+        generatedLocally: "Fórmula creada sin clave de IA. Revísala antes de insertarla.",
+        generatedWithAI: "Fórmula creada con IA. Revísala antes de insertarla.",
+        localUnsupported: "El modo local todavía no reconoce esa petición. Prueba con una operación común o configura OPENAI_API_KEY para activar la IA.",
+        formulaInserted: "Fórmula insertada en",
+        insertFailed: "No se pudo insertar la fórmula:",
+        formulaCopied: "Fórmula copiada al portapapeles.",
+        copyFailed: "No se pudo copiar la fórmula:",
+        backendUnavailable: "No se puede conectar con el servidor local. Inícialo con «python3 server.py» en la carpeta del proyecto y vuelve a intentarlo.",
+        languageChanged: "Idioma cambiado. Vuelve a crear la fórmula para actualizar el resultado.",
+      },
+      en: {
+        eyebrow: "Your spreadsheet assistant",
+        pageTitle: "Clear formulas for Excel",
+        subtitle: "Describe what you need in words, understand the formula, then insert it into the selected cell.",
+        badge: "Excel add-in",
+        toolsCard: "Formula tools",
+        languageGroup: "App language",
+        ideaLabel: "What would you like to calculate?",
+        ideaHint: 'For example: “If sales in B2 exceed 1,000, show ‘Target’; otherwise show ‘Pending’.”',
+        ideaInput: "Describe the calculation. You can mention column names or cell references.",
+        generateButton: "Create formula",
+        resultTitle: "Your formula",
+        copyButton: "Copy formula",
+        excelViewButton: "Excel formula",
+        wordsViewButton: "In words",
+        notationViewButton: "Notation",
+        viewModeLabel: "Display format",
+        emptyFormula: "Your formatted formula will appear here.",
+        emptyReport: "A clear explanation, ready to review or include in a report, will appear here.",
+        insertButton: "Insert into Excel",
+        checkingExcel: "Checking Excel connection…",
+        excelConnected: "Connected to Excel. The selected cell will be used.",
+        excelNotConnected: "Open this add-in in Excel to insert formulas.",
+        webPreview: "Web preview: open this add-in in Excel to insert formulas.",
+        footer: "Common formulas work locally without an API key. Set OPENAI_API_KEY to let AI handle more open-ended requests. Only your request is sent, never the worksheet data.",
+        askForCalculation: "Type the calculation you need.",
+        creatingFormula: "Creating and checking the formula…",
+        clarificationNeeded: "No formula was created for insertion. Review the explanation and any missing details.",
+        conditionalFormattingNotice: "Cell colors are applied with conditional formatting, not by inserting a formula as the cell value.",
+        invalidGeneratedFormula: "The response does not contain a valid Excel formula.",
+        reviewGeneratedFormula: "Formula created. Review it before inserting it into your worksheet.",
+        generatedLocally: "Formula created without an AI key. Review it before inserting.",
+        generatedWithAI: "Formula created with AI. Review it before inserting.",
+        localUnsupported: "Local mode does not recognize that request yet. Try a common operation or set OPENAI_API_KEY to enable AI.",
+        formulaInserted: "Formula inserted in",
+        insertFailed: "Could not insert the formula:",
+        formulaCopied: "Formula copied to the clipboard.",
+        copyFailed: "Could not copy the formula:",
+        backendUnavailable: "Cannot connect to the local server. Start it with “python3 server.py” from the project folder, then try again.",
+        languageChanged: "Language changed. Create the formula again to update the result.",
+      }
+    };
+
+    function message(key) {
+      return translations[selectedLanguage][key];
+    }
+
+    function translateInterface() {
+      const textIds = [
+        "eyebrow", "pageTitle", "subtitle", "badge",
+        "ideaLabel", "ideaHint", "generateButton", "resultTitle", "copyButton", "excelViewButton",
+        "wordsViewButton", "notationViewButton",
+        "insertButton", "footer"
+      ];
+      for (const id of textIds) $(id).textContent = message(id);
+      $("ideaInput").placeholder = message("ideaInput");
+      if (!formulaToInsert) {
+        formulaExplanation = "";
+        formulaNotation = "";
+        $("reportOutput").textContent = message("emptyReport");
+        $("formattedOutput").textContent = message("emptyFormula");
+      }
+      $("toolsCard").setAttribute("aria-label", message("toolsCard"));
+      $("resultModes").setAttribute("aria-label", message("viewModeLabel"));
+      $("languageSwitch").setAttribute("aria-label", message("languageGroup"));
+      $("spanishButton").setAttribute("aria-label", selectedLanguage === "es" ? "Español" : "Spanish");
+      $("spanishButton").title = selectedLanguage === "es" ? "Español" : "Spanish";
+      $("englishButton").setAttribute("aria-label", "English");
+      $("englishButton").title = "English";
+      if (selectedLanguage === "en") {
+        document.documentElement.lang = "en";
+        document.title = "Clear formulas for Excel";
+      } else {
+        document.documentElement.lang = "es";
+        document.title = "Fórmulas claras para Excel";
+      }
+      renderResultMode();
+      updateConnectionStatus();
+    }
+
+    function selectLanguage(language) {
+      const changed = selectedLanguage !== language;
+      const hadFormula = Boolean(formulaToInsert);
+      selectedLanguage = language;
+      $("spanishButton").setAttribute("aria-pressed", String(language === "es"));
+      $("englishButton").setAttribute("aria-pressed", String(language === "en"));
+      if (changed && hadFormula) {
+        formulaToInsert = "";
+        formulaLocale = language === "es";
+        $("copyButton").disabled = true;
+        $("insertButton").disabled = true;
+      }
+      translateInterface();
+      setStatus(changed && hadFormula ? message("languageChanged") : "");
+    }
+
+    function updateConnectionStatus() {
+      if (excelReady) $("connectionStatus").textContent = message("excelConnected");
+      else if (window.Office) $("connectionStatus").textContent = message("excelNotConnected");
+      else $("connectionStatus").textContent = message("webPreview");
+    }
+
+    function clearFormulaResult() {
+      formulaToInsert = "";
+      formulaLocale = true;
+      $("formattedOutput").textContent = message("emptyFormula");
+      $("reportOutput").textContent = message("emptyReport");
+      formulaExplanation = "";
+      formulaNotation = "";
+      displayMode = "excel";
+      renderResultMode();
+      $("copyButton").disabled = true;
+      $("insertButton").disabled = true;
+      setStatus("");
+    }
+
+    function setStatus(messageText, kind = "") {
+      $("status").textContent = messageText;
+      $("status").dataset.kind = kind;
+    }
+
+    function formatFormula(formula) {
+      let result = "";
+      let indent = 0;
+      let inString = false;
+      const unit = "  ";
+
+      for (let i = 0; i < formula.length; i++) {
+        const char = formula[i];
+        if (char === '"') {
+          result += char;
+          if (inString && formula[i + 1] === '"') {
+            result += formula[++i];
+            continue;
+          }
+          inString = !inString;
+          continue;
+        }
+        if (inString) {
+          result += char;
+        } else if (char === "(") {
+          indent++;
+          result += "(\n" + unit.repeat(indent);
+        } else if (char === ")") {
+          indent = Math.max(0, indent - 1);
+          result = result.replace(/[ \t]+$/, "");
+          if (!result.endsWith("\n")) result += "\n";
+          result += unit.repeat(indent) + ")";
+        } else if (char === ";" || char === ",") {
+          result += char + "\n" + unit.repeat(indent);
+        } else {
+          result += char;
+        }
+      }
+      return result.replace(/\n[ \t]*\n/g, "\n").trim();
+    }
+
+    function renderResultMode() {
+      const output = $("formattedOutput");
+      const hasFormula = Boolean(formulaToInsert);
+      const buttons = {
+        excel: "excelViewButton",
+        words: "wordsViewButton",
+        notation: "notationViewButton"
+      };
+      for (const [mode, id] of Object.entries(buttons)) {
+        $(id).setAttribute("aria-pressed", String(displayMode === mode));
+        $(id).disabled = !hasFormula;
+      }
+      output.dataset.mode = displayMode;
+      output.textContent = !hasFormula
+        ? message("emptyFormula")
+        : displayMode === "words"
+          ? formulaExplanation || message("emptyReport")
+          : displayMode === "notation"
+            ? formulaNotation || formulaToInsert.replace("<=", "≤").replace(">=", "≥").replace("<>", "≠")
+            : formatFormula(formulaToInsert);
+      $("reportOutput").hidden = displayMode === "words";
+      if (hasFormula && displayMode !== "words") $("reportOutput").textContent = formulaExplanation;
+    }
+
+    function setDisplayMode(mode) {
+      displayMode = mode;
+      renderResultMode();
+    }
+
+    async function callAssistant(task, text) {
+      let response;
+      try {
+        response = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task, text, language: selectedLanguage })
+        });
+      } catch (error) {
+        if (error instanceof TypeError) throw new Error(message("backendUnavailable"));
+        throw error;
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `El servidor respondió con el error ${response.status}.`);
+      return data;
+    }
+
+    function showFormula(formula, explanation, notation = "", mode = displayMode) {
+      formulaToInsert = formula;
+      formulaExplanation = explanation;
+      formulaNotation = notation || formula;
+      displayMode = mode;
+      $("reportOutput").textContent = explanation;
+      $("copyButton").disabled = false;
+      $("insertButton").disabled = !excelReady;
+      renderResultMode();
+    }
+
+    async function generateFormula() {
+      const idea = $("ideaInput").value.trim();
+      if (!idea) {
+        setStatus(message("askForCalculation"), "error");
+        return;
+      }
+      clearFormulaResult();
+      $("generateButton").disabled = true;
+      setStatus(message("creatingFormula"));
+      try {
+        const result = await callAssistant("generate", idea);
+        if (typeof result.formula === "string" && !result.formula.trim()) {
+          $("reportOutput").textContent = result.explanation;
+          const conditionalFormatting = /conditional formatting|formato condicional/i.test(result.explanation);
+          const unsupportedRequest = result.mode === "local" && /does not recognize|todavía no reconoce/i.test(result.explanation);
+          setStatus(
+            conditionalFormatting
+              ? message("conditionalFormattingNotice")
+              : unsupportedRequest
+                ? message("localUnsupported")
+                : message("clarificationNeeded"),
+            "error"
+          );
+          return;
+        }
+        if (typeof result.formula !== "string" || !result.formula.trim().startsWith("=")) {
+          throw new Error(message("invalidGeneratedFormula"));
+        }
+        formulaLocale = selectedLanguage === "es";
+        showFormula(result.formula.trim(), result.explanation, result.notation, "excel");
+        setStatus(message(result.mode === "ai" ? "generatedWithAI" : "generatedLocally"), "success");
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        $("generateButton").disabled = false;
+      }
+    }
+
+    async function insertFormula() {
+      if (!excelReady || !formulaToInsert) return;
+      $("insertButton").disabled = true;
+      try {
+        await Excel.run(async (context) => {
+          const range = context.workbook.getSelectedRange();
+          if (formulaLocale) range.formulasLocal = [[formulaToInsert]];
+          else range.formulas = [[formulaToInsert]];
+          range.load("address");
+          await context.sync();
+          setStatus(`${message("formulaInserted")} ${range.address}.`, "success");
+        });
+      } catch (error) {
+        setStatus(`${message("insertFailed")} ${error.message}`, "error");
+      } finally {
+        $("insertButton").disabled = false;
+      }
+    }
+
+    async function copyFormula() {
+      if (!formulaToInsert) return;
+      try {
+        await navigator.clipboard.writeText(formulaToInsert);
+        setStatus(message("formulaCopied"), "success");
+      } catch (error) {
+        setStatus(`${message("copyFailed")} ${error.message}`, "error");
+      }
+    }
+
+    $("spanishButton").addEventListener("click", () => selectLanguage("es"));
+    $("englishButton").addEventListener("click", () => selectLanguage("en"));
+    $("generateButton").addEventListener("click", generateFormula);
+    $("insertButton").addEventListener("click", insertFormula);
+    $("copyButton").addEventListener("click", copyFormula);
+    $("excelViewButton").addEventListener("click", () => setDisplayMode("excel"));
+    $("wordsViewButton").addEventListener("click", () => setDisplayMode("words"));
+    $("notationViewButton").addEventListener("click", () => setDisplayMode("notation"));
+    $("ideaInput").addEventListener("input", clearFormulaResult);
+
+    if (window.Office) {
+      Office.onReady((info) => {
+        excelReady = info.host === Office.HostType.Excel;
+        updateConnectionStatus();
+        $("insertButton").disabled = !excelReady || !formulaToInsert;
+      });
+    }
+    translateInterface();
+  </script>
+</body>
+</html>
